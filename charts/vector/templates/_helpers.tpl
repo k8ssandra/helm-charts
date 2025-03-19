@@ -290,7 +290,9 @@ to be more generally usable for other components.
 {{- range $componentKind, $configs := .Values.customConfig }}
   {{- if eq $componentKind "sources" }}
     {{- range $componentId, $componentConfig := $configs }}
-      {{- if eq (get $componentConfig "type") "datadog_agent" }}
+      {{- if $componentConfig }}
+        {{- if eq (get $componentConfig "type") "datadog_agent" }}
+      {{- end }}
 	{{- $hasSourceDatadogAgent = true }}
         {{- $sourceDatadogAgentPort = mustRegexFind "[0-9]+$" (get $componentConfig "address") }}
 	{{- if (hasKey $componentConfig "tls") }}
