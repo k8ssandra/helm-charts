@@ -136,8 +136,10 @@ Iterate over the components defined in `.Values.customConfig`.
 {{- $helper := index . 1 }}
   {{- if $components }}
     {{- range $id, $options := $components }}
-      {{- if (hasKey $options "address") }}
-        {{- tuple $id $options | include $helper -}}
+      {{- if $options}}
+        {{- if (hasKey $options "address") }}
+          {{- tuple $id $options | include $helper -}}
+        {{- end }}
       {{- end }}
     {{- end }}
   {{- end }}
