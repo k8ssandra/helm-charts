@@ -3,45 +3,58 @@ name: Release Charts
 
 on:
   push:
-    branches:
-      - master
-    paths:
-      - "charts/**"
+    tags:
+      - "v*.*.*"
   workflow_dispatch:
 
 jobs:
-  release:
+  helm-release:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      
+      - name: Update PATH
+        run: |
+          echo "$GITHUB_WORKSPACE/bin" >> $GITHUB_PATH
+      
+      - name: Generate package archives
+        run: |
+          cd charts
+          helm package vector
+
+      # Helm Release
+      - id: 'auth'
+        uses: 'google-github-actions/auth@v1'
         with:
-          fetch-depth: 0
-      - name: Configure Git
-        run: |
-          git config user.name "$GITHUB_ACTOR"
-          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
-      - name: Add repo
-        run: |
-          helm repo add vector https://helm.vector.dev
-          helm repo update
-      - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.7.0
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+      - name: 'Set up Cloud SDK'
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Download current index from Google Cloud
         env:
-          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-          CR_SKIP_EXISTING: true
-      - name: Login to GHCR
-        uses: docker/login-action@v3.4.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Push charts to GHCR
+          GCP_HELM_BUCKET_NAME: ${{ secrets.GCP_HELM_BUCKET_NAME }}
         run: |
-          shopt -s nullglob
-          for pkg in .cr-release-packages/*.tgz; do
-            if [ -z "${pkg:-}" ]; then
-              break
-            fi
-            helm push "${pkg}" "oci://ghcr.io/${GITHUB_REPOSITORY_OWNER}/helm-charts"
-          done
+          cd charts
+          echo "Downloading index.yaml from gs://$GCP_HELM_BUCKET_NAME/vector/index.yaml"
+          gsutil cp gs://$GCP_HELM_BUCKET_NAME/vector/index.yaml ./charts || helm repo index --url "https://$GCP_HELM_BUCKET_NAME/vector/" .
+
+      - name: Regenerate Helm index
+        env:
+          GCP_HELM_BUCKET_NAME: ${{ secrets.GCP_HELM_BUCKET_NAME }}
+        run: |
+          echo "Generating Helm index for gs://$GCP_HELM_BUCKET_NAME/vector/index.yaml"
+          cd charts
+          helm repo index . --merge index.yaml --url "https://$GCP_HELM_BUCKET_NAME/vector/"
+
+      - name: Upload packages and index
+        env:
+          GCP_HELM_BUCKET_NAME: ${{ secrets.GCP_HELM_BUCKET_NAME }}
+        run: |
+          cd charts
+          gsutil cp *.tgz gs://$GCP_HELM_BUCKET_NAME/vector/
+          gsutil cp index.yaml gs://$GCP_HELM_BUCKET_NAME/vector/
