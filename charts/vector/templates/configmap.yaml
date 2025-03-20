@@ -9,7 +9,21 @@ metadata:
 data:
   {{- if .Values.customConfig }}
   vector.yaml: |
-{{ tpl (toYaml .Values.customConfig) . | indent 4 }}
+{{- $customConfig := .Values.customConfig | deepCopy }}
+  {{- range $key, $value := $customConfig }}
+    {{- if $value }}
+      {{- $filteredComponents := dict }}
+      {{- range $componentKey, $componentValue := $value }}
+        {{- if $componentValue }}
+          {{- $_ := set $filteredComponents $componentKey $componentValue }}
+        {{- end }}
+      {{- end }}
+      {{- if $filteredComponents }}
+    {{ $key }}:
+{{ toYaml $filteredComponents | indent 6 }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
   {{- else if or (eq .Values.role "Aggregator") (eq .Values.role "Stateless-Aggregator") }}
   aggregator.yaml: |
     data_dir: /vector-data-dir
