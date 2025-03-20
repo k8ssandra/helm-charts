@@ -12,17 +12,24 @@ data:
 {{- $customConfig := .Values.customConfig | deepCopy }}
   {{- range $key, $value := $customConfig }}
     {{- if $value }}
-      {{- $filteredComponents := dict }}
-      {{- range $componentKey, $componentValue := $value }}
-        {{- if $componentValue }}
-          {{- $_ := set $filteredComponents $componentKey $componentValue }}
+      {{- if or (eq $key "sources") (eq $key "transforms") (eq $key "sinks") }}
+        {{- $filteredComponents := dict }}
+        {{- range $componentKey, $componentValue := $value }}
+          {{- if $componentValue }}
+            {{- $_ := set $filteredComponents $componentKey $componentValue }}
+          {{- end }}
         {{- end }}
-      {{- end }}
-      {{- if $filteredComponents }}
+        {{- if $filteredComponents }}
     {{ $key }}:
 {{ toYaml $filteredComponents | indent 6 }}
+        {{- end }}
+      {{- else if kindIs "map" $value }}
+    {{ $key }}:
+{{ toYaml $value | indent 6 }}
+      {{- else }}
+    {{ $key }}: {{ $value }}
       {{- end }}
-    {{- end }}
+      {{- end }}
   {{- end }}
   {{- else if or (eq .Values.role "Aggregator") (eq .Values.role "Stateless-Aggregator") }}
   aggregator.yaml: |
