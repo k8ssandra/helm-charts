@@ -9,7 +9,7 @@ metadata:
 data:
   {{- if .Values.customConfig }}
   vector.yaml: |
-{{- $customConfig := .Values.customConfig | deepCopy }}
+{{- $customConfig := (tpl .Values.customConfig .) | deepCopy }}
   {{- range $key, $value := $customConfig }}
     {{- if $value }}
       {{- if or (eq $key "sources") (eq $key "transforms") (eq $key "sinks") }}
