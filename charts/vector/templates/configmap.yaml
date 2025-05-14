@@ -1,3 +1,4 @@
+{{- $relName := .Release.Name -}}
 {{- if not .Values.existingConfigMaps }}
 apiVersion: v1
 kind: ConfigMap
@@ -21,7 +22,8 @@ data:
         {{- end }}
         {{- if $filteredComponents }}
     {{ $key }}:
-{{ toYaml $filteredComponents | indent 6 }}
+{{ $_ := set . "relName" $relName }}
+{{ (tpl (toYaml $filteredComponents) .) | indent 6 }}
         {{- end }}
       {{- else if kindIs "map" $value }}
     {{ $key }}:
