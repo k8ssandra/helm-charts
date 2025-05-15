@@ -86,6 +86,8 @@ customConfig:
       multiple_outputs: true
     internal_metrics:
       type: internal_metrics
+      endpoints:
+        - "http://{{ $.relName }}-kube-state-metrics:8080/metrics"
   transforms:
     remap_logs:
       type: remap
