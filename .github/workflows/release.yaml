@@ -41,7 +41,7 @@ jobs:
         run: |
           cd charts
           echo "Downloading index.yaml from gs://$GCP_HELM_BUCKET_NAME/vector/index.yaml"
-          gsutil cp gs://$GCP_HELM_BUCKET_NAME/vector/index.yaml ./charts
+          gsutil cp gs://$GCP_HELM_BUCKET_NAME/vector/index.yaml ./
 
       - name: Regenerate Helm index
         env:
